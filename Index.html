@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>万物奶娃</title>
+    <style>
+        :root {
+            --bg-dark: #0d0d0d;
+            --accent-yellow: #fada24;
+            --text-white: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-dark);
+            color: var(--text-white);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+            overflow: hidden;
+            position: fixed;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            background-color: var(--bg-dark);
+        }
+
+        .header {
+            width: 100%;
+            padding: 16px;
+            padding-top: calc(16px + env(safe-area-inset-top));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 20;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .app-icon {
+            width: 28px;
+            height: 28px;
+            background-color: var(--accent-yellow);
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 16px;
+        }
+
+        .app-title {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .usage-tag {
+            font-size: 12px;
+            color: #8e8e93;
+            margin-left: 2px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .model-select {
+            background-color: rgba(28, 28, 30, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            outline: none;
+            cursor: pointer;
+            max-width: 140px;
+            text-overflow: ellipsis;
+        }
+
+        .model-select option {
+            background-color: #1c1c1e;
+            color: white;
+        }
+
+        .icon-btn {
+            background-color: rgba(28, 28, 30, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .landing-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            flex: 1;
+        }
+
+        .main-title {
+            font-size: 26px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #8e8e93;
+            margin-bottom: 28px;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-yellow);
+            color: #000;
+            border: none;
+            width: 220px;
+            padding: 14px 0;
+            border-radius: 24px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 16px;
+        }
+
+        .btn-text {
+            background: none;
+            border: none;
+            color: #8e8e93;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .bottom-bar {
+            width: 100%;
+            padding: 20px 36px calc(20px + env(safe-area-inset-bottom)) 36px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 20;
+        }
+
+        .shutter-btn {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            border: 4px solid white;
+            background: transparent;
+            padding: 3px;
+            cursor: pointer;
+        }
+
+        .shutter-inner {
+            width: 100%;
+            height: 100%;
+            background: white;
+            border-radius: 50%;
+        }
+
+        #hiddenVideo {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            padding: 24px;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .modal-card {
+            background: #1c1c1e;
+            padding: 24px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .modal-card input {
+            background: #2c2c2e;
+            border: 1px solid #3a3a3c;
+            color: white;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .gallery-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #f2f2f7;
+            color: #000;
+            z-index: 90;
+            flex-direction: column;
+        }
+
+        .gallery-header {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            border-bottom: 1px solid #e5e5ea;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .gallery-item {
+            aspect-ratio: 3/4;
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: #e5e5ea;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .preview-view {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            z-index: 95;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .preview-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #333;
+            border-top: 4px solid var(--accent-yellow);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="screen" id="homeScreen">
+        <div class="header">
+            <div class="header-left">
+                <div class="app-icon">😮</div>
+                <span class="app-title">万物奶娃</span>
+                <span class="usage-tag">剩余 0 次</span>
+            </div>
+            <div class="header-right">
+                <select class="model-select" id="modelSelect" onchange="onModelSelectChange()">
+                    <option value="agnes-image-2.1-flash">agnes-image-2.1-flash</option>
+                </select>
+                <button class="icon-btn" onclick="openConfig()">🎁</button>
+                <button class="icon-btn" onclick="openGallery()">田</button>
+            </div>
+        </div>
+
+        <div class="landing-content">
+            <div class="main-title">拍什么都变奶娃</div>
+            <div class="subtitle">点一下拍照，立即生成奶娃</div>
+            <button class="btn-primary" onclick="captureSnapshot()">开启相机拍照</button>
+            <button class="btn-text" onclick="triggerFileInput()">从相册选一张</button>
+        </div>
+
+        <div class="bottom-bar">
+            <button class="icon-btn" onclick="triggerFileInput()">⬆</button>
+            <button class="shutter-btn" onclick="captureSnapshot()"><div class="shutter-inner"></div></button>
+            <button class="icon-btn" onclick="toggleFacingMode()">🔄</button>
+        </div>
+    </div>
+
+    <video id="hiddenVideo" autoplay playsinline muted></video>
+    <canvas id="hiddenCanvas" style="display:none;"></canvas>
+    <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleFileSelect(event)">
+
+    <!-- Agnes AI Config Modal -->
+    <div class="modal" id="configModal">
+        <div class="modal-card">
+            <h3 style="margin:0; color:white;">Agnes AI 设置</h3>
+            <label style="font-size:12px; color:#aaa;">Base URL</label>
+            <input type="text" id="baseUrlInput" value="https://apihub.agnes-ai.com/v1">
+            <label style="font-size:12px; color:#aaa;">API Key</label>
+            <input type="password" id="apiKeyInput" placeholder="YOUR_AGNES_API_KEY">
+            <button class="btn-primary" style="width:100%;" onclick="saveConfig()">保存配置并刷新</button>
+            <button style="background:none; border:none; color:#8e8e93; padding:8px; cursor:pointer;" onclick="closeModal('configModal')">取消</button>
+        </div>
+    </div>
+
+    <!-- Gallery Modal -->
+    <div class="gallery-modal" id="galleryModal">
+        <div class="gallery-header">
+            <h2 style="margin:0; font-size:18px;">照片库</h2>
+            <div>
+                <button style="border:1px solid #007aff; color:#007aff; background:none; padding:4px 12px; border-radius:12px; margin-right:8px; font-weight:600;" onclick="clearGallery()">清空全部</button>
+                <button style="border:none; background:#e5e5ea; border-radius:50%; width:28px; height:28px; font-weight:bold;" onclick="closeGallery()">✕</button>
+            </div>
+        </div>
+        <div class="gallery-grid" id="galleryGrid"></div>
+    </div>
+
+    <!-- Preview View -->
+    <div class="preview-view" id="previewView">
+        <div style="position:absolute; top:calc(16px + env(safe-area-inset-top)); left:16px; z-index:10;">
+            <button class="icon-btn" onclick="closePreview()">←</button>
+        </div>
+        <img class="preview-img" id="resultImage" src="" alt="Result">
+        <div class="bottom-bar" style="position:absolute; bottom:0;">
+            <button class="icon-btn" onclick="downloadImage()">⬇</button>
+            <button class="btn-primary" style="width:140px; margin:0;" onclick="downloadImage()">💾 保存</button>
+            <button class="icon-btn" onclick="closePreview(); captureSnapshot();">📷</button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div id="loadingText" style="font-size:15px; font-weight:600;">正在处理...</div>
+    </div>
+
+    <script>
+        let currentFacingMode = 'environment';
+        let galleryImages = JSON.parse(localStorage.getItem('nailong_gallery') || '[]');
+
+        async function fetchAvailableModels() {
+            const baseUrl = (localStorage.getItem('openai_base_url') || 'https://apihub.agnes-ai.com/v1').replace(/\/+$/, '');
+            const apiKey = localStorage.getItem('openai_api_key');
+            const selectEl = document.getElementById('modelSelect');
+
+            if (!apiKey) {
+                selectEl.innerHTML = '<option value="agnes-image-2.1-flash">设置 Key...</option>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${baseUrl}/models`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+
+                const data = await response.json().catch(() => null);
+
+                if (!response.ok || !data || !data.data) {
+                    throw new Error('Fallback to default model');
+                }
+
+                selectEl.innerHTML = '';
+                const savedModel = localStorage.getItem('openai_model') || 'agnes-image-2.1-flash';
+
+                data.data.forEach((m) => {
+                    const opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.textContent = m.id;
+                    selectEl.appendChild(opt);
+                });
+
+                if (selectEl.querySelector(`option[value="${CSS.escape(savedModel)}"]`)) {
+                    selectEl.value = savedModel;
+                } else if (selectEl.options.length > 0) {
+                    localStorage.setItem('openai_model', selectEl.value);
+                }
+
+            } catch (err) {
+                selectEl.innerHTML = '<option value="agnes-image-2.1-flash">agnes-image-2.1-flash</option>';
+            }
+        }
+
+        function onModelSelectChange() {
+            const val = document.getElementById('modelSelect').value;
+            if (val) {
+                localStorage.setItem('openai_model', val);
+            }
+        }
+
+        function toggleFacingMode() {
+            currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+            captureSnapshot();
+        }
+
+        async function captureSnapshot() {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const loadingText = document.getElementById('loadingText');
+            loadingText.innerText = '正在调用相机...';
+            loadingOverlay.style.display = 'flex';
+
+            let stream = null;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { exact: currentFacingMode }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+                    audio: false
+                }).catch(() => {
+                    return navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: currentFacingMode },
+                        audio: false
+                    });
+                });
+
+                const video = document.getElementById('hiddenVideo');
+                video.srcObject = stream;
+
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => reject(new Error('Camera play timeout')), 4000);
+                    video.onloadeddata = () => {
+                        video.play().then(() => {
+                            clearTimeout(timeout);
+                            setTimeout(resolve, 500);
+                        }).catch(reject);
+                    };
+                });
+
+                const canvas = document.getElementById('hiddenCanvas');
+                canvas.width = video.videoWidth || 1280;
+                canvas.height = video.videoHeight || 720;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                stream.getTracks().forEach(t => t.stop());
+                video.srcObject = null;
+
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        processImageWithAPI(blob);
+                    } else {
+                        loadingOverlay.style.display = 'none';
+                        alert('无法截取相片');
+                    }
+                }, 'image/png');
+
+            } catch (err) {
+                if (stream) stream.getTracks().forEach(t => t.stop());
+                loadingOverlay.style.display = 'none';
+                alert('相机调用失败: ' + err.message);
+            }
+        }
+
+        function triggerFileInput() {
+            document.getElementById('fileInput').click();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processImageWithAPI(file);
+            }
+            event.target.value = '';
+        }
+
+        // Convert Blob to Data URI Base64
+        function blobToDataURL(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        async function processImageWithAPI(imageBlob) {
+            const baseUrl = (localStorage.getItem('openai_base_url') || 'https://apihub.agnes-ai.com/v1').replace(/\/+$/, '');
+            const apiKey = localStorage.getItem('openai_api_key');
+            const model = document.getElementById('modelSelect').value || localStorage.getItem('openai_model') || 'agnes-image-2.1-flash';
+
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const loadingText = document.getElementById('loadingText');
+
+            if (!apiKey) {
+                loadingOverlay.style.display = 'none';
+                alert('请先在 🎁 设置中输入 Agnes AI 的 API Key！');
+                openConfig();
+                return;
+            }
+
+            loadingText.innerText = '正在生成奶娃...';
+            loadingOverlay.style.display = 'flex';
+
+            try {
+                // Convert input image blob to base64 Data URI for Agnes AI
+                const base64DataUri = await blobToDataURL(imageBlob);
+
+                // Agnes AI endpoint for agnes-image-2.1-flash image-to-image
+                const response = await fetch(`${baseUrl}/images/generations`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        prompt: "Transform the main target object into a cute yellow dragon character style 3d render, preserving original composition.",
+                        size: "1K",
+                        ratio: "1:1",
+                        extra_body: {
+                            image: [ base64DataUri ],
+                            response_format: "b64_json"
+                        }
+                    })
+                });
+
+                const data = await response.json().catch(() => null);
+
+                if (!response.ok) {
+                    throw new Error(data?.error?.message || `Agnes AI 请求失败 (HTTP ${response.status})`);
+                }
+
+                const resultUrl = data.data[0].url || `data:image/png;base64,${data.data[0].b64_json}`;
+                showResult(resultUrl);
+                
+                galleryImages.unshift(resultUrl);
+                localStorage.setItem('nailong_gallery', JSON.stringify(galleryImages));
+
+            } catch (err) {
+                alert('生成失败: ' + err.message);
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
+        function openConfig() {
+            document.getElementById('baseUrlInput').value = localStorage.getItem('openai_base_url') || 'https://apihub.agnes-ai.com/v1';
+            document.getElementById('apiKeyInput').value = localStorage.getItem('openai_api_key') || '';
+            document.getElementById('configModal').style.display = 'flex';
+        }
+
+        function saveConfig() {
+            localStorage.setItem('openai_base_url', document.getElementById('baseUrlInput').value.trim());
+            localStorage.setItem('openai_api_key', document.getElementById('apiKeyInput').value.trim());
+            closeModal('configModal');
+            fetchAvailableModels();
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        function showResult(url) {
+            document.getElementById('resultImage').src = url;
+            document.getElementById('previewView').style.display = 'flex';
+        }
+
+        function closePreview() {
+            document.getElementById('previewView').style.display = 'none';
+        }
+
+        function openGallery() {
+            const grid = document.getElementById('galleryGrid');
+            grid.innerHTML = '';
+            galleryImages.forEach((url) => {
+                const div = document.createElement('div');
+                div.className = 'gallery-item';
+                div.innerHTML = `<img src="${url}" onclick="showResult('${url}')">`;
+                grid.appendChild(div);
+            });
+            document.getElementById('galleryModal').style.display = 'flex';
+        }
+
+        function closeGallery() {
+            document.getElementById('galleryModal').style.display = 'none';
+        }
+
+        function clearGallery() {
+            galleryImages = [];
+            localStorage.removeItem('nailong_gallery');
+            openGallery();
+        }
+
+        function downloadImage() {
+            const src = document.getElementById('resultImage').src;
+            if (!src) return;
+            const a = document.createElement('a');
+            a.href = src;
+            a.download = `nailong_${Date.now()}.png`;
+            a.click();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchAvailableModels();
+        });
+    </script>
+</body>
+</html>
