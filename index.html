@@ -191,14 +191,23 @@
             border-radius: 50%;
         }
 
-        #hiddenVideo {
-            position: absolute;
-            left: -9999px;
-            top: -9999px;
-            width: 1px;
-            height: 1px;
-            opacity: 0;
-            pointer-events: none;
+        .camera-view {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 80;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        #liveVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .modal {
@@ -347,18 +356,27 @@
         <div class="landing-content">
             <div class="main-title">拍什么都变奶娃</div>
             <div class="subtitle">点一下拍照，立即生成奶娃</div>
-            <button class="btn-primary" onclick="captureSnapshot()">开启相机拍照</button>
+            <button class="btn-primary" onclick="startCameraStream()">开启相机拍照</button>
             <button class="btn-text" onclick="triggerFileInput()">从相册选一张</button>
         </div>
 
         <div class="bottom-bar">
             <button class="icon-btn" onclick="triggerFileInput()">⬆</button>
-            <button class="shutter-btn" onclick="captureSnapshot()"><div class="shutter-inner"></div></button>
+            <button class="shutter-btn" onclick="startCameraStream()"><div class="shutter-inner"></div></button>
+            <button class="icon-btn" onclick="openConfig()">⚙️</button>
+        </div>
+    </div>
+
+    <!-- Live Camera View Modal -->
+    <div class="camera-view" id="cameraView">
+        <video id="liveVideo" autoplay playsinline muted></video>
+        <div class="bottom-bar" style="position:absolute; bottom:0; background:linear-gradient(transparent, rgba(0,0,0,0.8));">
+            <button class="icon-btn" onclick="stopCameraStream()">✕</button>
+            <button class="shutter-btn" onclick="takePhotoFromStream()"><div class="shutter-inner"></div></button>
             <button class="icon-btn" onclick="toggleFacingMode()">🔄</button>
         </div>
     </div>
 
-    <video id="hiddenVideo" autoplay playsinline muted></video>
     <canvas id="hiddenCanvas" style="display:none;"></canvas>
     <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleFileSelect(event)">
 
@@ -387,16 +405,16 @@
         <div class="gallery-grid" id="galleryGrid"></div>
     </div>
 
-    <!-- Preview View -->
+    <!-- Result Preview View -->
     <div class="preview-view" id="previewView">
         <div style="position:absolute; top:calc(16px + env(safe-area-inset-top)); left:16px; z-index:10;">
             <button class="icon-btn" onclick="closePreview()">←</button>
         </div>
         <img class="preview-img" id="resultImage" src="" alt="Result">
-        <div class="bottom-bar" style="position:absolute; bottom:0;">
+        <div class="bottom-bar" style="position:absolute; bottom:0; background:linear-gradient(transparent, rgba(0,0,0,0.8));">
             <button class="icon-btn" onclick="downloadImage()">⬇</button>
             <button class="btn-primary" style="width:140px; margin:0;" onclick="downloadImage()">💾 保存</button>
-            <button class="icon-btn" onclick="closePreview(); captureSnapshot();">📷</button>
+            <button class="icon-btn" onclick="closePreview(); startCameraStream();">📷</button>
         </div>
     </div>
 
@@ -407,7 +425,9 @@
     </div>
 
     <script>
+        const REFERENCE_IMAGE_URL = "IMG_4808.jpeg";
         let currentFacingMode = 'environment';
+        let activeStream = null;
         let galleryImages = JSON.parse(localStorage.getItem('nailong_gallery') || '[]');
 
         async function fetchAvailableModels() {
@@ -460,65 +480,59 @@
             }
         }
 
-        function toggleFacingMode() {
-            currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
-            captureSnapshot();
-        }
+        async function startCameraStream() {
+            const cameraView = document.getElementById('cameraView');
+            const liveVideo = document.getElementById('liveVideo');
 
-        async function captureSnapshot() {
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            const loadingText = document.getElementById('loadingText');
-            loadingText.innerText = '正在调用相机...';
-            loadingOverlay.style.display = 'flex';
-
-            let stream = null;
             try {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: { exact: currentFacingMode }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+                activeStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: currentFacingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
                     audio: false
                 }).catch(() => {
-                    return navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: currentFacingMode },
-                        audio: false
-                    });
+                    return navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                 });
 
-                const video = document.getElementById('hiddenVideo');
-                video.srcObject = stream;
-
-                await new Promise((resolve, reject) => {
-                    const timeout = setTimeout(() => reject(new Error('Camera play timeout')), 4000);
-                    video.onloadeddata = () => {
-                        video.play().then(() => {
-                            clearTimeout(timeout);
-                            setTimeout(resolve, 500);
-                        }).catch(reject);
-                    };
-                });
-
-                const canvas = document.getElementById('hiddenCanvas');
-                canvas.width = video.videoWidth || 1280;
-                canvas.height = video.videoHeight || 720;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                stream.getTracks().forEach(t => t.stop());
-                video.srcObject = null;
-
-                canvas.toBlob((blob) => {
-                    if (blob) {
-                        processImageWithAPI(blob);
-                    } else {
-                        loadingOverlay.style.display = 'none';
-                        alert('无法截取相片');
-                    }
-                }, 'image/png');
-
+                liveVideo.srcObject = activeStream;
+                await liveVideo.play();
+                cameraView.style.display = 'flex';
             } catch (err) {
-                if (stream) stream.getTracks().forEach(t => t.stop());
-                loadingOverlay.style.display = 'none';
-                alert('相机调用失败: ' + err.message);
+                alert('无法打开相机: ' + err.message);
             }
+        }
+
+        function stopCameraStream() {
+            if (activeStream) {
+                activeStream.getTracks().forEach(track => track.stop());
+                activeStream = null;
+            }
+            document.getElementById('cameraView').style.display = 'none';
+        }
+
+        async function toggleFacingMode() {
+            currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+            stopCameraStream();
+            await startCameraStream();
+        }
+
+        function takePhotoFromStream() {
+            const video = document.getElementById('liveVideo');
+            const canvas = document.getElementById('hiddenCanvas');
+
+            canvas.width = video.videoWidth || 1280;
+            canvas.height = video.videoHeight || 720;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            stopCameraStream();
+
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    processImageWithAPI(blob);
+                } else {
+                    alert('捕获照片失败');
+                }
+            }, 'image/png');
         }
 
         function triggerFileInput() {
@@ -533,7 +547,6 @@
             event.target.value = '';
         }
 
-        // Convert Blob to Data URI Base64
         function blobToDataURL(blob) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -562,10 +575,8 @@
             loadingOverlay.style.display = 'flex';
 
             try {
-                // Convert input image blob to base64 Data URI for Agnes AI
-                const base64DataUri = await blobToDataURL(imageBlob);
+                const capturedBase64 = await blobToDataURL(imageBlob);
 
-                // Agnes AI endpoint for agnes-image-2.1-flash image-to-image
                 const response = await fetch(`${baseUrl}/images/generations`, {
                     method: 'POST',
                     headers: {
@@ -574,11 +585,11 @@
                     },
                     body: JSON.stringify({
                         model: model,
-                        prompt: "Transform the main target object into a cute yellow dragon character style 3d render, preserving original composition.",
+                        prompt: "Combine the reference style and target object into a cute yellow dragon character 3D render, preserving original composition.",
                         size: "1K",
                         ratio: "1:1",
                         extra_body: {
-                            image: [ base64DataUri ],
+                            image: [ REFERENCE_IMAGE_URL, capturedBase64 ],
                             response_format: "b64_json"
                         }
                     })
